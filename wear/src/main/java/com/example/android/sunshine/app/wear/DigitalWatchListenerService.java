@@ -18,10 +18,10 @@ import com.google.android.gms.wearable.WearableListenerService;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-public class DigitalWearListenerService extends WearableListenerService {
+public class DigitalWatchListenerService extends WearableListenerService {
 
     // Logging Identifier for the class
-    private final String LOG_TAG = DigitalWearListenerService.class.getSimpleName();
+    private final String LOG_TAG = DigitalWatchListenerService.class.getSimpleName();
     private final int TIMEOUT_MS = 1000;
 
     GoogleApiClient mGoogleApiClient;
