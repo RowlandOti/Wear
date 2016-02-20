@@ -9,15 +9,15 @@ import android.support.v7.app.AlertDialog;
 
 import com.example.android.sunshine.app.R;
 
-public class WearColorSelectDailog extends DialogFragment {
+public class WatchColorSelectDailog extends DialogFragment {
 
     private static final String ARG_TITLE = "ARG_TITLE";
     private Listener colourSelectedListener;
 
-    public static WearColorSelectDailog newInstance(String dialogTitle) {
+    public static WatchColorSelectDailog newInstance(String dialogTitle) {
         Bundle arguments = new Bundle();
         arguments.putString(ARG_TITLE, dialogTitle);
-        WearColorSelectDailog dialog = new WearColorSelectDailog();
+        WatchColorSelectDailog dialog = new WatchColorSelectDailog();
         dialog.setArguments(arguments);
         return dialog;
     }

@@ -9,25 +9,26 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.example.android.sunshine.app.R;
+import com.example.android.sunshine.app.common.Constants;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
-public class WearSettingsActivity extends AppCompatActivity implements WearColorSelectDailog.Listener, GoogleApiClient.ConnectionCallbacks,
+public class WatchSettingsActivity extends AppCompatActivity implements WatchColorSelectDailog.Listener, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
 
     // Logging Identifier for the class
-    private static String LOG_TAG = WearSettingsActivity.class.getSimpleName();
+    private static String LOG_TAG = WatchSettingsActivity.class.getSimpleName();
 
     private static final String TAG_BACKGROUND_COLOUR_CHOOSER = "background_chooser";
     private static final String TAG_DATE_AND_TIME_COLOUR_CHOOSER = "date_time_chooser";
     // To synchronize with the data layer API, we have to firstly connect to it through a GoogleApiClient object
     private GoogleApiClient mGoogleApiClient;
-
-    private View backgroundColourImagePreview;
-    private View dateAndTimeColourImagePreview;
+    private WatchFaceConfigurationPreferences mWatchFaceConfigurationPreferences;
+    private View mBackgroundColourImagePreview;
+    private View mDateAndTimeColourImagePreview;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +41,7 @@ public class WearSettingsActivity extends AppCompatActivity implements WearColor
         findViewById(R.id.configuration_background_colour).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                WearColorSelectDailog.newInstance(getString(R.string.pick_background_colour))
+                WatchColorSelectDailog.newInstance(getString(R.string.pick_background_colour))
                         .show(getSupportFragmentManager(), TAG_BACKGROUND_COLOUR_CHOOSER);
             }
         });
@@ -48,13 +49,14 @@ public class WearSettingsActivity extends AppCompatActivity implements WearColor
         findViewById(R.id.configuration_time_colour).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                WearColorSelectDailog.newInstance(getString(R.string.pick_date_time_colour))
+                WatchColorSelectDailog.newInstance(getString(R.string.pick_date_time_colour))
                         .show(getSupportFragmentManager(), TAG_DATE_AND_TIME_COLOUR_CHOOSER);
             }
         });
 
-        backgroundColourImagePreview = findViewById(R.id.configuration_background_colour_preview);
-        dateAndTimeColourImagePreview = findViewById(R.id.configuration_date_and_time_colour_preview);
+        mBackgroundColourImagePreview = findViewById(R.id.configuration_background_colour_preview);
+        mDateAndTimeColourImagePreview = findViewById(R.id.configuration_date_and_time_colour_preview);
+        mWatchFaceConfigurationPreferences = WatchFaceConfigurationPreferences.newInstance(this);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -76,15 +78,19 @@ public class WearSettingsActivity extends AppCompatActivity implements WearColor
 
     @Override
     public void onColourSelected(String colour, String tag) {
-        PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/simple_watch_face_config");
+        PutDataMapRequest putDataMapReq = PutDataMapRequest.create(Constants.WATCH_FACE_SETTINGS_PATH);
 
         if (TAG_BACKGROUND_COLOUR_CHOOSER.equals(tag)) {
-            backgroundColourImagePreview.setBackgroundColor(Color.parseColor(colour));
+            mBackgroundColourImagePreview.setBackgroundColor(Color.parseColor(colour));
+            mWatchFaceConfigurationPreferences.setBackgroundColour(Color.parseColor(colour));
             putDataMapReq.getDataMap().putString("KEY_BACKGROUND_COLOUR", colour);
         } else {
-            dateAndTimeColourImagePreview.setBackgroundColor(Color.parseColor(colour));
+            mDateAndTimeColourImagePreview.setBackgroundColor(Color.parseColor(colour));
+            mWatchFaceConfigurationPreferences.setBackgroundColour(Color.parseColor(colour));
             putDataMapReq.getDataMap().putString("KEY_DATE_TIME_COLOUR", colour);
         }
+
+        Log.d(LOG_TAG, "onColorSelected" + colour);
 
         PutDataRequest putDataReq = putDataMapReq.asPutDataRequest();
         Wearable.DataApi.putDataItem(mGoogleApiClient, putDataReq);
@@ -111,12 +117,12 @@ public class WearSettingsActivity extends AppCompatActivity implements WearColor
 
     @Override
     public void onConnectionSuspended(int i) {
-        Log.e(LOG_TAG, "onConnectionSuspended");
+        Log.d(LOG_TAG, "onConnectionSuspended");
     }
 
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.e(LOG_TAG, "onConnectionFailed");
+        Log.d(LOG_TAG, "onConnectionFailed");
     }
 }
 

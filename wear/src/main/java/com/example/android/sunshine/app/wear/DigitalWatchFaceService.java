@@ -12,7 +12,10 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import android.view.WindowInsets;
 
+import com.example.android.sunshine.app.R;
+import com.example.android.sunshine.app.common.Constants;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
@@ -23,8 +26,11 @@ import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataItemBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -47,6 +53,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
     }
 
     private class WatchFaceEngine extends CanvasWatchFaceService.Engine {
+
+        private static final String KEY_UUID = "uuid";
+
+
         // Handler that will post a runnable only if the watch is visible and not in ambient mode in order to start ticking
         private Handler mTimeTick;
         // Instance of a watch face
@@ -57,25 +67,39 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         private final DataApi.DataListener onDataChangedListener = new DataApi.DataListener() {
             @Override
             public void onDataChanged(DataEventBuffer dataEvents) {
+                // Iterate through all data events
                 for (DataEvent event : dataEvents) {
+                    // Look only for DataEvent.TYPE_CHANGED events
                     if (event.getType() == DataEvent.TYPE_CHANGED) {
                         DataItem item = event.getDataItem();
-                        processConfigurationFor(item);
+                        // Discriminate between unique paths
+                        if (Constants.WATCH_FACE_SETTINGS_PATH.equals(item.getUri().getPath())) {
+                            processConfigurationChange(item);
+                        }
+                        if (Constants.WEATHER_PATH.equals(item.getUri().getPath())) {
+                            processWeatherData(item);
+                        }
+                    } else if (event.getType() == DataEvent.TYPE_DELETED) {
+                        // DataItem deleted
                     }
                 }
 
                 dataEvents.release();
                 invalidateIfNecessary();
             }
+
         };
+
         // Only notified when the service is firstly connected
         private final ResultCallback<DataItemBuffer> onConnectedResultCallback = new ResultCallback<DataItemBuffer>() {
             @Override
             public void onResult(DataItemBuffer dataItems) {
                 for (DataItem item : dataItems) {
-                    processConfigurationFor(item);
-                }
+                    if (Constants.WATCH_FACE_SETTINGS_PATH.equals(item.getUri().getPath())) {
+                        processConfigurationChange(item);
+                    }
 
+                }
                 dataItems.release();
                 invalidateIfNecessary();
             }
@@ -89,6 +113,10 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 Log.d(LOG_TAG, "connected GoogleAPI");
                 Wearable.DataApi.addListener(mGoogleApiClient, onDataChangedListener);
                 Wearable.DataApi.getDataItems(mGoogleApiClient).setResultCallback(onConnectedResultCallback);
+                // Request information about watch settings
+                requestWatchSettingsInfo();
+                // Request information about the weather
+                requestWeatherInfo();
             }
 
             @Override
@@ -96,6 +124,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 Log.e(LOG_TAG, "suspended GoogleAPI");
             }
         };
+
         // A callback to update on the status of trying to connect
         GoogleApiClient.OnConnectionFailedListener mOnConnectionFailedListener = new GoogleApiClient.OnConnectionFailedListener() {
             @Override
@@ -103,6 +132,29 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                 Log.d(LOG_TAG, "connectedFailed GoogleAPI");
             }
         };
+
+        private void requestWatchSettingsInfo() {
+            Wearable.DataApi.getDataItems(mGoogleApiClient).setResultCallback(onConnectedResultCallback);
+        }
+
+        private void requestWeatherInfo() {
+            PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(Constants.WEATHER_PATH);
+            putDataMapRequest.getDataMap().putString(KEY_UUID, UUID.randomUUID().toString());
+            PutDataRequest request = putDataMapRequest.asPutDataRequest();
+
+            Wearable.DataApi.getDataItems(mGoogleApiClient).setResultCallback(onConnectedResultCallback);
+            Wearable.DataApi.putDataItem(mGoogleApiClient, request)
+                    .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                        @Override
+                        public void onResult(DataApi.DataItemResult dataItemResult) {
+                            if (!dataItemResult.getStatus().isSuccess()) {
+                                Log.d(LOG_TAG, "Failed asking phone for weather data");
+                            } else {
+                                Log.d(LOG_TAG, "Successfully asked for weather data");
+                            }
+                        }
+                    });
+        }
 
         // Define your watch face style and other graphical elements.
         @Override
@@ -127,6 +179,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             startTimerIfNecessary();
             // Initialize the Watch Face
             mDigitalWatchFace = DigitalWatchFace.newInstance(DigitalWatchFaceService.this);
+            mDigitalWatchFace.updateBackgroundColourTo(getResources().getColor(R.color.digital_background));
             // Client to synchronise with data API
             mGoogleApiClient = new GoogleApiClient.Builder(DigitalWatchFaceService.this)
                     .addApi(Wearable.API)
@@ -173,6 +226,8 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             if (visible) {
                 // Engage client when WatchFace is visible
                 mGoogleApiClient.connect();
+                Log.d(LOG_TAG, "GoogleApiClent Connection Requested");
+
             } else {
                 // Free client when the watch face is not visible anymore.
                 releaseGoogleApiClient();
@@ -190,7 +245,9 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         // Release connection when not needed
         private void releaseGoogleApiClient() {
             if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                Wearable.DataApi.removeListener(mGoogleApiClient, onDataChangedListener);
                 mGoogleApiClient.disconnect();
+                Log.d(LOG_TAG, "GoogleApiClent Connection Disconnected");
             }
         }
 
@@ -199,6 +256,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         @Override
         public void onAmbientModeChanged(boolean inAmbientMode) {
             super.onAmbientModeChanged(inAmbientMode);
+            Log.d(LOG_TAG, "Enter Ambient Mode");
             // Battery performance optimizations
             mDigitalWatchFace.setAntiAlias(!inAmbientMode);
             // We set the color to gray in Ambien
@@ -218,6 +276,12 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             startTimerIfNecessary();
         }
 
+        @Override
+        public void onApplyWindowInsets(WindowInsets insets) {
+            super.onApplyWindowInsets(insets);
+            mDigitalWatchFace.setWindowInsets(insets);
+        }
+
         // Callback is invoked every minute when the watch is in ambient mode. It is very important to consider that this callback is only
         // invoked while on ambient mode, as it's name is rather confusing suggesting that this callbacks every time.
         @Override
@@ -228,23 +292,21 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
             invalidate();
         }
 
-        private void processConfigurationFor(DataItem item) {
-            // use the path (/simple_watch_face_config) and the keys associated with every item (we defined the keys in the WatchFaceSettingsActivity)
-            // in order to get hold of the sent values
-            if ("/simple_watch_face_config".equals(item.getUri().getPath())) {
-                DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
-                if (dataMap.containsKey("KEY_BACKGROUND_COLOUR")) {
-                    String backgroundColour = dataMap.getString("KEY_BACKGROUND_COLOUR");
-                    mDigitalWatchFace.updateBackgroundColourTo(Color.parseColor(backgroundColour));
-                }
-
-                if (dataMap.containsKey("KEY_DATE_TIME_COLOUR")) {
-                    String timeColour = dataMap.getString("KEY_DATE_TIME_COLOUR");
-                    mDigitalWatchFace.updateDateAndTimeColourTo(Color.parseColor(timeColour));
-                }
-            }
+        private void processConfigurationChange(DataItem item) {
+            //  Acquire
+            DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+            // Upgrade watch settings
+            mDigitalWatchFace.updateConfigurationChanges(dataMap);
+            invalidate();
         }
 
+        private void processWeatherData(DataItem item) {
+            //  Acquire
+            DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+            // Update the weather data
+            mDigitalWatchFace.updateWeatherData(dataMap);
+            invalidate();
+        }
 
         @Override
         public void onDestroy() {

@@ -44,7 +44,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
  * See <a hred="http://developer.android.com/training/wearables/watch-faces/service.html">Building a Watch Face Service</a>
  */
 public class DigitalWearFaceService extends CanvasWatchFaceService {
@@ -71,7 +70,7 @@ public class DigitalWearFaceService extends CanvasWatchFaceService {
         return new Engine();
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener,GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
         private static final String WEATHER_PATH = "/weather";
         private static final String WEATHER_INFO_PATH = "/weather-info";
@@ -462,6 +461,7 @@ public class DigitalWearFaceService extends CanvasWatchFaceService {
                             }
                         }
                     });
+
         }
     }
 

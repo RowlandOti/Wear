@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.android.sunshine.app"
-        minSdkVersion 9
+        minSdkVersion 20
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -29,7 +29,7 @@ dependencies {
     compile project(':libraries:common')
     testCompile 'junit:junit:4.12'
 
-    //compile 'com.google.android.gms:play-services:8.4.0'
+    compile 'com.google.android.gms:play-services:8.4.0'
     compile 'com.google.android.gms:play-services-wearable:8.4.0'
     compile 'com.google.android.gms:play-services-ads:8.4.0'
     compile 'com.google.android.gms:play-services-auth:8.4.0'
