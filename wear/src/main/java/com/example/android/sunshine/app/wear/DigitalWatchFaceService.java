@@ -76,7 +76,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
                         if (Constants.WATCH_FACE_SETTINGS_PATH.equals(item.getUri().getPath())) {
                             processConfigurationChange(item);
                         }
-                        if (Constants.WEATHER_PATH.equals(item.getUri().getPath())) {
+                        if (Constants.WEATHER_DATA_PATH.equals(item.getUri().getPath())) {
                             processWeatherData(item);
                         }
                     } else if (event.getType() == DataEvent.TYPE_DELETED) {
@@ -138,7 +138,7 @@ public class DigitalWatchFaceService extends CanvasWatchFaceService {
         }
 
         private void requestWeatherInfo() {
-            PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(Constants.WEATHER_PATH);
+            PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(Constants.WEATHER_DATA_PATH);
             putDataMapRequest.getDataMap().putString(KEY_UUID, UUID.randomUUID().toString());
             PutDataRequest request = putDataMapRequest.asPutDataRequest();
 

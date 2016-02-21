@@ -67,8 +67,7 @@ public class MyGcmListenerService extends GcmListenerService {
                     JSONObject jsonObject = new JSONObject(data.getString(EXTRA_DATA));
                     String weather = jsonObject.getString(EXTRA_WEATHER);
                     String location = jsonObject.getString(EXTRA_LOCATION);
-                    String alert =
-                            String.format(getString(R.string.gcm_weather_alert), weather, location);
+                    String alert = String.format(getString(R.string.gcm_weather_alert), weather, location);
                     sendNotification(alert);
                 } catch (JSONException e) {
                     // JSON parsing failed, so we just let this message go, since GCM is not one

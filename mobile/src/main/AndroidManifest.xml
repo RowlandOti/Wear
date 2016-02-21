@@ -194,6 +194,11 @@
         <service
             android:name=".gcm.RegistrationIntentService"
             android:exported="false"></service>
+        <service android:name=".wear.WearWeatherListenerService" >
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
+            </intent-filter>
+        </service>
         <service
             android:name=".wear.WatchWeatherIntentService"
             android:exported="false">
